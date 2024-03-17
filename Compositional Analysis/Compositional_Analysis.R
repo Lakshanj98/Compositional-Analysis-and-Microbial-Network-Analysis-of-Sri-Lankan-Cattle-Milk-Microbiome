@@ -848,8 +848,8 @@ for (i in selectvs){
   
 }
 
-#####################           Pathogen Analysis
-
+#######################################           Pathogen Analysis          ######################
+#############   pathogen - farm code bar plot
 theme_set(theme_bw())
 cbreedphy <- transform_sample_counts(phyfiltered, function(x) x / sum(x))
 
@@ -886,7 +886,7 @@ dev.off()
 
 
 
-
+##################   pathogen - sample bar plot
 #setwd("D:/Research/R codes/impData")
 
 theme_set(theme_bw())
