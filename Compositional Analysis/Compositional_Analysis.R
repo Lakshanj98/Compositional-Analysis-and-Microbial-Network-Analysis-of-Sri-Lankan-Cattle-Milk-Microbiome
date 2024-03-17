@@ -304,4 +304,680 @@ for (i in selectvs){
   dev.off()
 }
 
-################################      add the bar plots from line 423
+################################    Relative abundances in milk microbiota
+
+# generating the basic plot
+top100 <- names(sort(taxa_sums(phyfiltered), decreasing=TRUE))[1:100]
+# prune_taxa: An S4 Generic method for removing (pruning) unwanted OTUs/taxa 
+# from phylogenetic objects, including phylo-class trees, as well as native phyloseq package objects. 
+ps.top100 <- prune_taxa(top100, phyfiltered)
+plot_bar(ps.top100, fill="Order")
+
+# generate a high quality 350 ppi image
+jpeg(filename = "Top100_orders with abundance.jpeg",
+     width = 2337, height = 1653, units = "px", pointsize = 12,
+     quality = 75, bg = "white", res = 350)
+#plotting
+plot_bar(ps.top100, fill="Order")
+# Saving the pdf
+dev.off()
+
+# converting to RA values
+transtot <- transform_sample_counts(phyfiltered, function(x) x / sum(x))
+ps.top100 <- prune_taxa(top100, transtot)
+plot_bar(ps.top100, fill="Order")+ylab("Relative abundance")
+# generate a high quality 350 ppi image
+jpeg(filename = "Top100_orders with relative abundance.jpeg",
+     width = 2337, height = 1653, units = "px", pointsize = 12,
+     quality = 75, bg = "white", res = 350)
+#plotting
+plot_bar(ps.top100, fill="Order")+ylab("Relative abundance")
+# Saving the pdf
+dev.off()
+
+
+
+# defining a taxa level
+t_level = "Phylum"
+
+# converting to RA values
+transtot <- transform_sample_counts(phyfiltered, function(x) x / sum(x))
+#aggregating taxa (aggregating RA at genus level )
+totGlommed = tax_glom(transtot, t_level, NArm=TRUE)
+
+top20 <- names(sort(taxa_sums(totGlommed), decreasing=TRUE))[1:20]
+ps.top20 <- prune_taxa(top20, totGlommed)
+
+# filtering based on the percentage
+cbrfr = filter_taxa(totGlommed, function(x)  max(x) > 0.01, TRUE)
+# use the following plot margin for fat bars
+plot_bar(cbrfr, fill=t_level)+theme(  plot.margin = margin(2, 9, 2, 9, "cm"))+ ylab("Relative abundance")
+plot_bar(cbrfr, fill=t_level)+ylab("Relative abundance")
+
+# generate a high quality 350 ppi image
+jpeg(filename = "Phyla greater than 0.01 with relative abundance.jpeg",
+     width = 2337, height = 1653, units = "px", pointsize = 12,
+     quality = 75, bg = "white", res = 350)
+#plotting
+plot_bar(cbrfr, fill=t_level)+ylab("Relative abundance")
+# Saving the pdf
+dev.off()
+
+
+plot_bar(ps.top20, fill=t_level)+ylab("Relative abundance")
+
+# generate a high quality 350 ppi image
+jpeg(filename = "Top20_Phylumss with relative abundance.jpeg",
+     width = 2337, height = 1653, units = "px", pointsize = 12,
+     quality = 75, bg = "white", res = 350)
+#plotting
+plot_bar(ps.top20, fill=t_level)+ylab("Relative abundance")
+# Saving the pdf
+dev.off()
+
+
+
+totmelted <- psmelt(totGlommed)
+
+# concatenating string for csv file name
+#     setwd("D:/Research/R codes/impData")
+# writing relative abundance values of generas
+csvfname= paste(t_level, "_tot_RA.csv", sep="_")
+write.csv(totmelted, csvfname)
+
+
+setwd("D:/Research/R codes")
+
+# Generating phylogenetic trees
+
+# not sure section
+# This method merges species that have the same taxonomy at a certain taxonomic rank.
+phylumGlommed = tax_glom(transformed, t_level, NArm=FALSE)
+
+# getting the top abundant taxa
+topphy = names(sort(taxa_sums(phylumGlommed), TRUE)[1:30])
+# prune_taxa: An S4 Generic method for removing (pruning) unwanted OTUs/taxa 
+# from phylogenetic objects, including phylo-class trees, as well as native phyloseq package objects. 
+toptax=prune_taxa(topphy,phylumGlommed)
+
+
+# aggregating taxa
+aggrphy <- aggregate_taxa(transformed, 'Phylum')
+melted <- psmelt(toptax)
+# Saving the otu table of the aggregated phyloseq object
+#write_phyloseq(aggrphy, 'OTU', path = getwd())
+#setwd("D:/Research/R codes/impData")
+write.csv(melted,'GEnus_percentage.csv')
+
+##  -------- generate trees with top 30 ---------------------------
+# defining a taxa level
+t_levellist = c("Species","Order","Genus", "Phylum")
+
+# The list of variables
+selectvs =c("cleanliness","FarmSize")
+
+# cbrfr = filter_taxa(phylumGlommed, function(x)  max(x) > 0.01, TRUE)
+plot_tree(toptax, color="cleanliness", label.tips= "taxa_names", ladderize = TRUE, justify = "huha",nodelabf = nodeplotboot())
+plot_tree(toptax, color="FarmSize", label.tips= "taxa_names", ladderize = TRUE, justify = "huha",nodelabf = nodeplotboot())
+
+
+for(t_level in t_levellist){
+  
+  # Another way to aggregate data
+  phylumGlommed = tax_glom(transformed, t_level, NArm=TRUE)
+  
+  # getting the top abundant taxa
+  topphy = names(sort(taxa_sums(phylumGlommed), TRUE)[1:30])
+  toptax=prune_taxa(topphy,phylumGlommed)
+  
+  # Plotting the phylogenetic trees for all the variables using a loop
+  for (i in selectvs){
+    #File name
+    trfname= paste( "Top30_justified",t_level,"tree", i,".pdf", sep="_")
+    jpegname= paste( "Top30_justified",t_level,"tree", i,".jpeg", sep="_")
+    # Command to save as a pdf
+    pdf(file=trfname, paper="a4r",width = 0, height = 0)
+    #plotting
+    print(plot_tree(toptax, color=i, label.tips= t_level,ladderize = "left", justify = "yes"))
+    # Saving the pdf
+    dev.off()
+    
+    # generate a high quality 350 ppi image
+    jpeg(filename = jpegname,
+         width = 2337, height = 1653, units = "px", pointsize = 12,
+         quality = 75, bg = "white", res = 350)
+    #plotting
+    print(plot_tree(toptax, color=i, label.tips= t_level,ladderize = "left", justify = "yes"))
+    # Saving the pdf
+    dev.off()
+  }
+  
+  
+}
+
+
+
+# Saving the melted data file
+phylummelted <- psmelt(phylumGlommed)
+
+write.csv(phylummelted,'Order_glom_percentage.csv')
+
+
+### Phylogenetic trees for different variable aggregates ###############
+# different taxa ranks to iterate
+taxal = c("Genus")
+
+# defining a taxa level
+t_levellist = c("Species","Order","Genus", "Phylum")
+
+# The list of variables
+selectvs =c("cleanliness","FarmSize")
+
+# Looping through the selected sample variables
+for (i in selectvs){
+  # merge based on variables
+  mergedphy =merge_samples(phyfiltered,group = i)
+  
+  # transform to relative abundance
+  cbreedphy <- transform_sample_counts(mergedphy, function(x) x / sum(x))
+  # Aggregation based on given taxa level
+  for(tl in t_levellist){
+    phylumGlommed = tax_glom(cbreedphy, tl, NArm=FALSE)
+    
+    # filtering taxa based on percentage
+    #cbrfr = filter_taxa(phylumGlommed, function(x)  max(x) > 0.02, TRUE)
+    
+    topphy = names(sort(taxa_sums(phylumGlommed), TRUE)[1:30])
+    toptax=prune_taxa(topphy,phylumGlommed)
+    
+    #File name
+    trfname= paste( "top30",tl,"tree", i,".pdf", sep="_")
+    jpegname= paste( "top30",tl,"tree", i,".jpeg", sep="_")
+    # Command to save as a pdf
+    pdf(file=trfname, paper="a4r",width = 0, height = 0)
+    #plotting
+    print(plot_tree(toptax, color="Sample", size="abundance",label.tips= tl,base.spacing=0.04, ladderize = TRUE))
+    
+    # Saving the pdf
+    dev.off()
+    
+    # generate a high quality 350 ppi image
+    jpeg(filename = jpegname,
+         width = 2337, height = 1653, units = "px", pointsize = 12,
+         quality = 75, bg = "white", res = 350)
+    #plotting
+    print(plot_tree(toptax, color=i, label.tips= t_level,ladderize = "left", justify = "yes"))
+    # Saving the pdf
+    dev.off()
+  }
+}
+
+#################################       Bar Plots                ###############
+#Variable aggregation
+  # different taxa ranks to iterate
+  selectvs =c("cleanliness","FarmSize")
+  taxal = c("Species")             # for Species level
+  
+  
+  # Looping through the selected sample variables
+  for (i in selectvs){
+    # merge based on variables
+    mergedphy =merge_samples(phyfiltered,group = i)
+    
+    # transform to relative abundance
+    cbreedphy <- transform_sample_counts(mergedphy, function(x) x / sum(x))
+    # Aggregation based on given taxa level
+    for(tl in taxal){
+      phylumGlommed = tax_glom(cbreedphy, tl, NArm=FALSE)
+      
+      # merging the OTU table with TAXA names and saving as a CSV
+      # converting each table to dataframes
+      ttdf=data.frame(as(tax_table(phylumGlommed), "matrix"))
+      # have to transpose the OTU table as merging automatically transposes the matrix
+      otdf=as.data.frame(t(otu_table(phylumGlommed)))
+      # merging
+      mtable= merge.data.frame(ttdf,otdf, by=0,all.x = F)
+      # saving as a CSV
+      csname= paste( tl, i,"relative_abandance.csv", sep="_")
+      write.csv(mtable,csname)
+      
+      # filtering taxa based on percentage
+      cbrfr = filter_taxa(phylumGlommed, function(x)  max(x) > 0.01, TRUE)
+      
+      #Plotting the stacked barplots
+      #File name
+      trfname= paste( tl, i,"barplot.pdf", sep="_")
+      jpegname= paste( tl, i,"barplot.jpeg", sep="_")
+      # Command to save as a pdf
+      pdf(file=trfname, paper="a4r",width = 0, height = 0)
+      # Plotting the stacked barplots
+      p = plot_bar(subset_taxa(cbrfr,!is.na(Species)),fill = tl) + ylab("Relative abundance") + xlab(i)
+      p = p + geom_bar(color="black",stat="identity", position="stack")
+      # p=p+scale_fill_manual(values=c("#1f77b4","#ff7f0e","#2ca02c","#d62728",
+      #                                "#9467bd","#8c564b","#e377c2","#7f7f7f",
+      #                                "#bcbd22","#17becf","#aec7e8","#ffbb78",
+      #                                "#98df8a","#ff9896","#c5b0d5","#c49c94"))
+      plot(p)
+      # Saving the pdf
+      dev.off()
+      
+      # generate a high quality 350 ppi image
+      jpeg(filename = jpegname,
+           width = 2337, height = 1653, units = "px", pointsize = 12,
+           quality = 75, bg = "white", res = 350)
+      #plotting
+      plot(p)
+      # Saving the pdf
+      dev.off()
+      
+      
+      # Heatmaps
+      #File name
+      trfname= paste( tl, i,"heatmap.pdf", sep="_")
+      jpegname= paste( tl, i,"heatmap.jpeg", sep="_")
+      # Command to save as a pdf
+      pdf(file=trfname, paper="a4r",width = 0, height = 0)
+      hm=plot_heatmap(cbrfr,method=NULL, taxa.label = tl,taxa.order=tl) + ylab("Relative abundance") + xlab(i) + scale_fill_gradient(name ="Relative abundance")
+      plot(hm)
+      # Saving the pdf
+      dev.off()
+      
+      # generate a high quality 350 ppi image
+      jpeg(filename = jpegname,
+           width = 2337, height = 1653, units = "px", pointsize = 12,
+           quality = 75, bg = "white", res = 350)
+      #plotting
+      plot(hm)
+      # Saving the pdf
+      dev.off()
+    }
+  }
+  
+################      For Genus Level
+
+taxal = c("Genus")
+# Looping through the selected sample variables
+for (i in selectvs){
+  # merge based on variables
+  mergedphy =merge_samples(phyfiltered,group = i)
+  
+  # transform to relative abundance
+  cbreedphy <- transform_sample_counts(mergedphy, function(x) x / sum(x))
+  # Aggregation based on given taxa level
+  for(tl in taxal){
+    phylumGlommed = tax_glom(cbreedphy, tl, NArm=FALSE)
+    
+    # merging the OTU table with TAXA names and saving as a CSV
+    # converting each table to dataframes
+    ttdf=data.frame(as(tax_table(phylumGlommed), "matrix"))
+    # have to transpose the OTU table as merging automatically transposes the matrix
+    otdf=as.data.frame(t(otu_table(phylumGlommed)))
+    # merging
+    mtable= merge.data.frame(ttdf,otdf, by=0,all.x = F)
+    # saving as a CSV
+    csname= paste( tl, i,"relative_abandance.csv", sep="_")
+    write.csv(mtable,csname)
+    
+    # filtering taxa based on percentage
+    cbrfr = filter_taxa(phylumGlommed, function(x)  max(x) > 0.01, TRUE)
+    
+    #Plotting the stacked barplots
+    #File name
+    trfname= paste( tl, i,"barplot.pdf", sep="_")
+    jpegname= paste( tl, i,"barplot.jpeg", sep="_")
+    # Command to save as a pdf
+    pdf(file=trfname, paper="a4r",width = 0, height = 0)
+    # Plotting the stacked barplots
+    p = plot_bar(subset_taxa(cbrfr,!is.na(Genus)),fill = tl) + ylab("Relative abundance")+ xlab(i)
+    p = p + geom_bar(color="black",stat="identity", position="stack")
+    p=p+scale_fill_manual(values=c("#1f77b4","#ff7f0e","#2ca02c","#d62728",
+                                   "#9467bd","#8c564b","#e377c2","#7f7f7f",
+                                   "#bcbd22","#17becf","#aec7e8","#ffbb78",
+                                   "#98df8a","#ff9896","#c5b0d5","#c49c94",
+                                   "#f7b6d2","#c7c7c7","#dbdb8d","#9edae5"))
+    plot(p)
+    # Saving the pdf
+    dev.off()
+    
+    # generate a high quality 350 ppi image
+    jpeg(filename = jpegname,
+         width = 2400, height = 2060, units = "px", pointsize = 12,
+         quality = 75, bg = "white", res = 350)
+    #plotting
+    plot(p)
+    # Saving the pdf
+    dev.off()
+    
+    # plot in Rstudio to check graph
+    plot(p)
+    
+    # Heatmaps
+    #File name
+    trfname= paste( tl, i,"heatmap.pdf", sep="_")
+    jpegname= paste( tl, i,"heatmap.jpeg", sep="_")
+    # Command to save as a pdf
+    pdf(file=trfname, paper="a4r",width = 0, height = 0)
+    hm=plot_heatmap(cbrfr,method=NULL, taxa.label = tl,taxa.order=tl)+ ylab("Relative abundance") + xlab(i)+ scale_fill_gradient(name ="Relative abundance")
+    plot(hm)
+    # Saving the pdf
+    dev.off()
+
+    # generate a high quality 350 ppi image
+    jpeg(filename = jpegname,
+         width = 2337, height = 1653, units = "px", pointsize = 12,
+         quality = 75, bg = "white", res = 350)
+    #plotting
+    plot(hm)
+    # Saving the pdf
+    dev.off()
+  }
+  
+  
+}
+
+
+
+
+###############################   Order Level
+
+#setwd("D:/Research/R codes")
+#Variable aggregation
+# different taxa ranks to iterate
+taxal = c("Order")
+
+# Looping through the selected sample variables
+for (i in selectvs){
+  # merge based on variables
+  mergedphy =merge_samples(phyfiltered,group = i)
+  
+  # transform to relative abundance
+  cbreedphy <- transform_sample_counts(mergedphy, function(x) x / sum(x))
+  # Aggregation based on given taxa level
+  for(tl in taxal){
+    phylumGlommed = tax_glom(cbreedphy, tl, NArm=FALSE)
+    
+    # merging the OTU table with TAXA names and saving as a CSV
+    # converting each table to dataframes
+    ttdf=data.frame(as(tax_table(phylumGlommed), "matrix"))
+    # have to transpose the OTU table as merging automatically transposes the matrix
+    otdf=as.data.frame(t(otu_table(phylumGlommed)))
+    # merging
+    mtable= merge.data.frame(ttdf,otdf, by=0,all.x = F)
+    # saving as a CSV
+    csname= paste( tl, i,"relative_abandance.csv", sep="_")
+    write.csv(mtable,csname)
+    
+    # filtering taxa based on percentage
+    cbrfr = filter_taxa(phylumGlommed, function(x)  max(x) > 0.01, TRUE)
+    
+    #Plotting the stacked barplots
+    #File name
+    trfname= paste( tl, i,"barplot.pdf", sep="_")
+    jpegname= paste( tl, i,"barplot.jpeg", sep="_")
+    # Command to save as a pdf
+    pdf(file=trfname, paper="a4r",width = 0, height = 0)
+    # Plotting the stacked barplots
+    p = plot_bar(subset_taxa(cbrfr,!is.na(Order)),fill = tl) + ylab("Relative abundance")+ xlab(i)
+    p = p + geom_bar(color="black",stat="identity", position="stack")
+    p=p+scale_fill_manual(values=c("#1f77b4","#ff7f0e","#2ca02c","#d62728",
+                                   "#9467bd","#8c564b","#e377c2","#7f7f7f",
+                                   "#bcbd22","#17becf","#aec7e8","#ffbb78",
+                                   "#98df8a","#ff9896","#c5b0d5","#c49c94"))
+    plot(p)
+    # Saving the pdf
+    dev.off()
+    
+    # generate a high quality 350 ppi image
+    jpeg(filename = jpegname,
+         width = 2337, height = 1653, units = "px", pointsize = 12,
+         quality = 75, bg = "white", res = 350)
+    #plotting
+    plot(p)
+    # Saving the pdf
+    dev.off()
+    
+    
+    
+    # Heatmaps
+    #File name
+    trfname= paste( tl, i,"heatmap.pdf", sep="_")
+    jpegname= paste( tl, i,"heatmap.jpeg", sep="_")
+    # Command to save as a pdf
+    pdf(file=trfname, paper="a4r",width = 0, height = 0)
+    hm=plot_heatmap(cbrfr,method=NULL, taxa.label = tl,taxa.order=tl)+ ylab("Relative abundance") + xlab(i) +scale_fill_gradient(name ="Relative abundance")
+    plot(hm)
+    # Saving the pdf
+    dev.off()
+    
+    # generate a high quality 350 ppi image
+    jpeg(filename = jpegname,
+         width = 2337, height = 1653, units = "px", pointsize = 12,
+         quality = 75, bg = "white", res = 350)
+    #plotting
+    plot(hm)
+    # Saving the pdf
+    dev.off()
+  }
+  
+  
+}
+
+
+
+
+############################    Phylum Level
+
+#setwd("D:/Research/R codes")
+#Variable aggregation
+# different taxa ranks to iterate
+taxal = c("Phylum")
+# Looping through the selected sample variables
+for (i in selectvs){
+  # merge based on variables
+  mergedphy =merge_samples(phyfiltered,group = i)
+  
+  # transform to relative abundance
+  cbreedphy <- transform_sample_counts(mergedphy, function(x) x / sum(x))
+  # Aggregation based on given taxa level
+  for(tl in taxal){
+    phylumGlommed = tax_glom(cbreedphy, tl, NArm=FALSE)
+    
+    # merging the OTU table with TAXA names and saving as a CSV
+    # converting each table to dataframes
+    ttdf=data.frame(as(tax_table(phylumGlommed), "matrix"))
+    # have to transpose the OTU table as merging automatically transposes the matrix
+    otdf=as.data.frame(t(otu_table(phylumGlommed)))
+    # merging
+    mtable= merge.data.frame(ttdf,otdf, by=0,all.x = F)
+    # saving as a CSV
+    csname= paste( tl, i,"relative_abandance.csv", sep="_")
+    write.csv(mtable,csname)
+    
+    # filtering taxa based on percentage
+    cbrfr = filter_taxa(phylumGlommed, function(x)  max(x) > 0.01, TRUE)
+    
+    #Plotting the stacked barplots
+    #File name
+    trfname= paste( tl, i,"barplot.pdf", sep="_")
+    jpegname= paste( tl, i,"barplot.jpeg", sep="_")
+    # Command to save as a pdf
+    pdf(file=trfname, paper="a4r",width = 0, height = 0)
+    # Plotting the stacked barplots
+    p = plot_bar(subset_taxa(cbrfr,!is.na(Phylum)),fill = tl) + ylab("Relative abundance") + xlab(i)
+    p = p + geom_bar(color="black",stat="identity", position="stack")
+    p=p+scale_fill_manual(values=c("#1f77b4","#ff7f0e","#2ca02c","#d62728",
+                                   "#9467bd","#8c564b","#e377c2","#7f7f7f",
+                                   "#bcbd22","#17becf","#aec7e8","#ffbb78",
+                                   "#98df8a","#ff9896","#c5b0d5","#c49c94"))
+    plot(p)
+    # Saving the pdf
+    dev.off()
+    
+    # generate a high quality 350 ppi image
+    jpeg(filename = jpegname,
+         width = 2337, height = 1653, units = "px", pointsize = 12,
+         quality = 75, bg = "white", res = 350)
+    #plotting
+    plot(p)
+    # Saving the pdf
+    dev.off()
+    
+    
+    
+    # Heatmaps
+    #File name
+    trfname= paste( tl, i,"heatmap.pdf", sep="_")
+    jpegname= paste( tl, i,"heatmap.jpeg", sep="_")
+    # Command to save as a pdf
+    pdf(file=trfname, paper="a4r",width = 0, height = 0)
+    hm=plot_heatmap(cbrfr,method=NULL, taxa.label = tl,taxa.order=tl)+ ylab("Relative abundance") + xlab(i) + scale_fill_gradient(name ="Relative abundance")
+    plot(hm)
+    # Saving the pdf
+    dev.off()
+
+    # generate a high quality 350 ppi image
+    jpeg(filename = jpegname,
+         width = 2337, height = 1653, units = "px", pointsize = 12,
+         quality = 75, bg = "white", res = 350)
+    #plotting
+    plot(hm)
+    # Saving the pdf
+    dev.off()
+  }
+  
+  
+}
+
+#####################           Pathogen Analysis
+
+theme_set(theme_bw())
+cbreedphy <- transform_sample_counts(phyfiltered, function(x) x / sum(x))
+
+tax_table_data <- as.data.frame(cbreedphy@tax_table)
+write.csv(tax_table_data, file = "tax_table.csv", row.names = FALSE)
+
+gp.ch = subset_taxa(cbreedphy, Species == c("aerosaccus","agalactiae","nasimurium","saprophyticus"))
+
+# saving as a CSV
+csname= paste( "pathogens_farmcode.csv", sep="_")
+write.csv(gp.ch,csname)
+
+#File name
+trfname= paste("RA_pathogen_FarmCode_barplot2.pdf")
+jpegname= paste("RA_pathogen_FarmCode_barplot2.jpeg")
+# Command to save as a pdf
+pdf(file=trfname, paper="a4r",width = 0, height = 0)
+# Plotting the stacked barplots
+p=plot_bar(gp.ch,x="FarmCode", fill="Species")+ylab("Relative abundance")
+p = p + geom_bar(aes(color=Species, fill=Species), stat="identity", position="stack")
+plot(p)
+# Saving the pdf
+dev.off()
+
+
+# generate a high quality 350 ppi image
+jpeg(filename = jpegname,
+     width = 2337, height = 1653, units = "px", pointsize = 12,
+     quality = 75, bg = "white", res = 350)
+#plotting
+plot(p)
+# Saving the pdf
+dev.off()
+
+
+
+
+#setwd("D:/Research/R codes/impData")
+
+theme_set(theme_bw())
+cbreedphy <- transform_sample_counts(phyfiltered, function(x) x / sum(x))
+gp.ch = subset_taxa(cbreedphy, Species == c("aerosaccus","agalactiae","nasimurium","saprophyticus"))
+
+#File name
+trfname= paste("RA_pathogen_Sample_barplot2.pdf")
+jpegname= paste("RA_pathogen_Sample_barplot2.jpeg")
+# Command to save as a pdf
+pdf(file=trfname, paper="a4r",width = 0, height = 0)
+# Plotting the stacked barplots
+p=plot_bar(gp.ch,x="Sample", fill="Species")+ylab("Relative abundance")
+p = p + geom_bar(aes(color=Species, fill=Species), stat="identity", position="stack")
+plot(p)
+
+# Saving the pdf
+dev.off()
+
+
+# generate a high quality 350 ppi image
+jpeg(filename = jpegname,
+     width = 2337, height = 1653, units = "px", pointsize = 12,
+     quality = 75, bg = "white", res = 350)
+#plotting
+plot(p)
+# Saving the pdf
+dev.off()
+
+########################################### Obtaining RA barplot cleanliness
+#setwd("D:/Research/R codes/impData")
+
+theme_set(theme_bw())
+cbreedphy <- transform_sample_counts(phyfiltered, function(x) x / sum(x))
+#gp.ch = subset_taxa(cbreedphy, Species == c("aerosaccus","agalactiae","nasimurium","saprophyticus"))
+gp.ch = subset_taxa(cbreedphy, Species == c("aerosaccus","agalactiae","nasimurium","saprophyticus"))
+
+#gp.ch = subset_taxa(cbreedphy, Species == c("saprophyticus"))
+
+
+#File name
+trfname= paste("RA_pathogen_cleanliness_barplot2.pdf")
+jpegname= paste("RA_pathogen_cleanliness_barplot2.jpeg")
+# Command to save as a pdf
+pdf(file=trfname, paper="a4r",width = 0, height = 0)
+# Plotting the stacked barplots
+#p=plot_bar(gp.ch,x="FarmCode", fill="Species",facet_grid=~cleanliness)+ylab("Relative abundance")
+p=plot_bar(gp.ch, fill="Species",facet_grid=~cleanliness)+ylab("Relative abundance")
+p = p + geom_bar(aes(color=Species, fill=Species), stat="identity", position="stack")
+plot(p)
+
+# Saving the pdf
+dev.off()
+
+
+# generate a high quality 350 ppi image
+jpeg(filename = jpegname,
+     width = 2337, height = 1653, units = "px", pointsize = 12,
+     quality = 75, bg = "white", res = 350)
+#plotting
+plot(p)
+# Saving the pdf
+dev.off()
+
+#############################################################################
+###########################                  Obtaining RA barplot FarmSize
+#setwd("D:/Research/R codes/impData")
+
+theme_set(theme_bw())
+cbreedphy <- transform_sample_counts(phyfiltered, function(x) x / sum(x))
+gp.ch = subset_taxa(cbreedphy, Species == c("aerosaccus","agalactiae","nasimurium","saprophyticus"))
+
+#File name
+trfname= paste("RA_pathogen_FarmSize_barplot2.pdf")
+jpegname= paste("RA_pathogen_FarmSize_barplot2.jpeg")
+# Command to save as a pdf
+pdf(file=trfname, paper="a4r",width = 0, height = 0)
+#p=plot_bar(gp.ch,x="FarmCode", fill="Species",facet_grid=~FarmSize)+ylab("Relative abundance")
+p=plot_bar(gp.ch, fill="Species",facet_grid=~FarmSize)+ylab("Relative abundance")
+p = p + geom_bar(aes(color=Species, fill=Species), stat="identity", position="stack")
+plot(p)
+
+# Saving the pdf
+dev.off()
+
+
+# generate a high quality 350 ppi image
+jpeg(filename = jpegname,
+     width = 2337, height = 1653, units = "px", pointsize = 12,
+     quality = 75, bg = "white", res = 350)
+#plotting
+plot(p)
+# Saving the pdf
+dev.off()
