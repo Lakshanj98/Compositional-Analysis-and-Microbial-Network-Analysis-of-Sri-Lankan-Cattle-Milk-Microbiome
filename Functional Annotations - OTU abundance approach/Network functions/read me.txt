@@ -1,0 +1,11 @@
+Step 1 : create OTU tables for each variable level.
+
+Step 2 :run “generate tax table for networks.py”
+
+Step 3 : upload two relevant tables to imageGP site.
+
+Step 4: calculate the otu_abundance to the second column in xxxxxx.txt.faprotax.xls and save as a csv.
+
+Step 5: run “create network function otu_A TSVs.py”
+
+Step 6: run “network otu_abundance graphs.R”
