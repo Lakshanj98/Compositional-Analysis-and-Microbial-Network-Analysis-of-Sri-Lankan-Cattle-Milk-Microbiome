@@ -1,6 +1,6 @@
 # Compositional-Analysis-and-Microbial-Network-Analysis-of-Sri-Lankan-Cattle-Milk-Microbiome
 
-This research project tested the impact of changing farm cleanliness and farm size on the changes 
+This research project tested the impact of changing farm cleanliness and farm size levels on the changes 
 occur in the microbial composition of the Sri Lankan dairy milk microbiome.
 
 This repository contains the data files and codes necessary for the Compositional analysis,
